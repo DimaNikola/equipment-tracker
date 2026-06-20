@@ -33,6 +33,7 @@
     --danger:#ef6461;
     --danger-bg:rgba(239,100,97,0.12);
     --steel:#7fa8c9;
+    --teal:#5fc9c0;
     --radius:14px;
     --shadow:0 8px 24px rgba(0,0,0,0.35);
     --font-display:'Oswald',sans-serif;
@@ -240,8 +241,9 @@
     text-transform:uppercase;
     letter-spacing:0.06em;
   }
-  .stat-card.available .num{color:var(--success);}
-  .stat-card.issued .num{color:var(--danger);}
+  .stat-card.garage .num{color:var(--steel);}
+  .stat-card.office .num{color:var(--accent-strong);}
+  .stat-card.object .num{color:var(--teal);}
 
   /* ---------- Сетка карточек ---------- */
   main{
@@ -388,60 +390,52 @@
     border-top:1px dashed var(--border-soft);
   }
 
-  .status-pill{
-    font-family:var(--font-mono);
-    font-size:11.5px;
-    font-weight:600;
-    padding:4px 9px;
-    border-radius:7px;
-    letter-spacing:0.02em;
-  }
-  .status-pill.on{background:var(--success-bg);color:var(--success);}
-  .status-pill.off{background:var(--danger-bg);color:var(--danger);}
-
-  /* переключатель-ползунок */
-  .toggle{
+  /* 3-позиционный слайдер местонахождения: Гараж / Офис / Объект */
+  .loc-toggle{
     position:relative;
-    display:inline-block;
-    width:42px;
-    height:24px;
-    flex-shrink:0;
+    display:flex;
+    width:100%;
+    background:var(--bg-soft);
+    border:1px solid var(--border-soft);
+    border-radius:10px;
+    padding:3px;
   }
-  .toggle-input{
+  .loc-thumb{
     position:absolute;
-    inset:0;
-    opacity:0;
-    margin:0;
-    cursor:pointer;
+    top:3px;
+    left:3px;
+    width:calc((100% - 6px) / 3);
+    height:calc(100% - 6px);
+    border-radius:7px;
+    background:var(--steel);
+    transition:transform .25s cubic-bezier(.4,0,.2,1), background .25s ease;
+    z-index:1;
+  }
+  .loc-toggle[data-loc="1"] .loc-thumb{ transform:translateX(100%); background:var(--accent); }
+  .loc-toggle[data-loc="2"] .loc-thumb{ transform:translateX(200%); background:var(--teal); }
+
+  .loc-opt{
+    position:relative;
     z-index:2;
+    flex:1;
+    border:none;
+    background:transparent;
+    color:var(--text-faint);
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:11px;
+    letter-spacing:0.01em;
+    padding:8px 4px;
+    border-radius:7px;
+    cursor:pointer;
+    transition:color .2s ease;
+    white-space:nowrap;
   }
-  .toggle-track{
-    position:absolute;
-    inset:0;
-    background:var(--danger-bg);
-    border:1px solid rgba(239,100,97,0.4);
-    border-radius:999px;
-    transition:background .2s ease, border-color .2s ease;
-  }
-  .toggle-thumb{
-    position:absolute;
-    top:2px;left:2px;
-    width:18px;height:18px;
-    border-radius:50%;
-    background:var(--danger);
-    box-shadow:0 1px 3px rgba(0,0,0,0.4);
-    transition:transform .2s ease, background .2s ease;
-  }
-  .toggle-input:checked ~ .toggle-track{
-    background:var(--success-bg);
-    border-color:rgba(73,192,139,0.45);
-  }
-  .toggle-input:checked ~ .toggle-thumb{
-    transform:translateX(18px);
-    background:var(--success);
-  }
-  body.locked .toggle{opacity:0.5;}
-  body.locked .toggle-input{cursor:not-allowed;}
+  .loc-opt.active{color:#0c0f13;}
+  .loc-opt:hover:not(.active){color:var(--text-dim);}
+
+  body.locked .loc-toggle{opacity:0.55;}
+  body.locked .loc-opt{cursor:not-allowed;}
 
   /* ---------- Пустое состояние / загрузка ---------- */
   .empty-state, .loading-state{
@@ -651,13 +645,17 @@
     <div class="num" id="statTotal">—</div>
     <div class="label">Всего позиций</div>
   </div>
-  <div class="stat-card available">
-    <div class="num" id="statAvailable">—</div>
-    <div class="label">В наличии</div>
+  <div class="stat-card garage">
+    <div class="num" id="statGarage">—</div>
+    <div class="label">Гараж</div>
   </div>
-  <div class="stat-card issued">
-    <div class="num" id="statIssued">—</div>
-    <div class="label">Выдано / в работе</div>
+  <div class="stat-card office">
+    <div class="num" id="statOffice">—</div>
+    <div class="label">Офис</div>
+  </div>
+  <div class="stat-card object">
+    <div class="num" id="statObject">—</div>
+    <div class="label">Объект</div>
   </div>
 </div>
 
@@ -720,37 +718,41 @@
 
   const CORRECT_PIN = "7777";
 
+  /* Три положения слайдера местонахождения. Индекс хранится в поле
+     "location" каждой позиции оборудования: 0 = Гараж, 1 = Офис, 2 = Объект. */
+  const LOCATIONS = ["Гараж", "Офис", "Объект"];
+
   /* =========================================================
      ИСХОДНЫЙ СПИСОК ИЗ 25 ЕДИНИЦ ОБОРУДОВАНИЯ
      Используется только один раз — для первичного заполнения
      базы данных, если узел "equipment" ещё пуст.
   ========================================================== */
   const DEFAULT_EQUIPMENT = [
-    { id:"item01", number:1,  name:"Осушитель воздуха Jax",                 category:"Осушители воздуха",     img:"https://sun9-59.userapi.com/s/v1/ig2/RLzQNiST1sdelgZTYKxgSKdiaZcJLjrneFIegxJEzBe2F9YlxpALX_lRyQTl6c821HeAn-AJlejlgYDbGrrYgBhi.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,777x777&from=bu&u=9RbWkH0WQHUz3aVBmI2fb6Jv-V8fbDLtBL7OQnJPYhc&cs=777x0", quantity:1, status:true,  note:"" },
-    { id:"item02", number:2,  name:"Осушитель воздуха MASTER dh26",         category:"Осушители воздуха",     img:"", quantity:1, status:true,  note:"" },
-    { id:"item03", number:3,  name:"Осушитель воздуха MASTER dhp65 (урна)", category:"Осушители воздуха",     img:"", quantity:1, status:true,  note:"" },
-    { id:"item04", number:4,  name:"Осушитель воздуха MASTER dh752",        category:"Осушители воздуха",     img:"", quantity:1, status:true,  note:"" },
-    { id:"item05", number:5,  name:"Вентилятор промышленный №1",            category:"Вентиляторы",           img:"", quantity:1, status:true,  note:"" },
-    { id:"item06", number:6,  name:"Вентилятор промышленный №2",            category:"Вентиляторы",           img:"", quantity:1, status:true,  note:"" },
-    { id:"item07", number:7,  name:"Улитка малая",                         category:"Улитки",                img:"", quantity:1, status:true,  note:"" },
-    { id:"item08", number:8,  name:"Улитка большая",                       category:"Улитки",                img:"", quantity:1, status:true,  note:"" },
-    { id:"item09", number:9,  name:"Пылесос DEXP большой",                 category:"Пылесосы",              img:"", quantity:1, status:true,  note:"" },
-    { id:"item10", number:10, name:"Пылесос DEXP малый",                   category:"Пылесосы",              img:"", quantity:1, status:true,  note:"" },
-    { id:"item11", number:11, name:"Насос",                                category:"Насосы",                img:"", quantity:3, status:true,  note:"" },
-    { id:"item12", number:12, name:"АГП-1",                                category:"Прочее оборудование",   img:"", quantity:1, status:true,  note:"" },
-    { id:"item13", number:13, name:"Тепловизор",                           category:"Прочее оборудование",   img:"", quantity:1, status:true,  note:"" },
-    { id:"item14", number:14, name:"Тестер поиска протечки",               category:"Прочее оборудование",   img:"", quantity:1, status:true,  note:"" },
-    { id:"item15", number:15, name:"Осушитель воздуха (чёрный, Китай)",    category:"Осушители воздуха",     img:"", quantity:1, status:true,  note:"" },
-    { id:"item16", number:16, name:"Водосгон",                             category:"Прочее оборудование",   img:"", quantity:1, status:true,  note:"" },
-    { id:"item17", number:17, name:"Вентилятор маленький",                 category:"Вентиляторы",           img:"", quantity:1, status:true,  note:"" },
-    { id:"item18", number:18, name:"Шаблон 1",                             category:"Шаблон / Резерв",       img:"", quantity:1, status:true,  note:"" },
-    { id:"item19", number:19, name:"Шаблон 2",                             category:"Шаблон / Резерв",       img:"", quantity:1, status:true,  note:"" },
-    { id:"item20", number:20, name:"Шаблон 3",                             category:"Шаблон / Резерв",       img:"", quantity:1, status:true,  note:"" },
-    { id:"item21", number:21, name:"Шаблон 4",                             category:"Шаблон / Резерв",       img:"", quantity:1, status:true,  note:"" },
-    { id:"item22", number:22, name:"Шаблон 5",                             category:"Шаблон / Резерв",       img:"", quantity:1, status:true,  note:"" },
-    { id:"item23", number:23, name:"Шаблон 6",                             category:"Шаблон / Резерв",       img:"", quantity:1, status:true,  note:"" },
-    { id:"item24", number:24, name:"Шаблон 7",                             category:"Шаблон / Резерв",       img:"", quantity:1, status:true,  note:"" },
-    { id:"item25", number:25, name:"Шаблон 8",                             category:"Шаблон / Резерв",       img:"", quantity:1, status:true,  note:"" }
+    { id:"item01", number:1,  name:"Осушитель воздуха Jax",                 category:"Осушители воздуха",     img:"", quantity:1, location:0,  note:"" },
+    { id:"item02", number:2,  name:"Осушитель воздуха MASTER dh26",         category:"Осушители воздуха",     img:"", quantity:1, location:0,  note:"" },
+    { id:"item03", number:3,  name:"Осушитель воздуха MASTER dhp65 (урна)", category:"Осушители воздуха",     img:"", quantity:1, location:0,  note:"" },
+    { id:"item04", number:4,  name:"Осушитель воздуха MASTER dh752",        category:"Осушители воздуха",     img:"", quantity:1, location:0,  note:"" },
+    { id:"item05", number:5,  name:"Вентилятор промышленный №1",            category:"Вентиляторы",           img:"", quantity:1, location:0,  note:"" },
+    { id:"item06", number:6,  name:"Вентилятор промышленный №2",            category:"Вентиляторы",           img:"", quantity:1, location:0,  note:"" },
+    { id:"item07", number:7,  name:"Улитка малая",                         category:"Улитки",                img:"", quantity:1, location:0,  note:"" },
+    { id:"item08", number:8,  name:"Улитка большая",                       category:"Улитки",                img:"", quantity:1, location:0,  note:"" },
+    { id:"item09", number:9,  name:"Пылесос DEXP большой",                 category:"Пылесосы",              img:"", quantity:1, location:0,  note:"" },
+    { id:"item10", number:10, name:"Пылесос DEXP малый",                   category:"Пылесосы",              img:"", quantity:1, location:0,  note:"" },
+    { id:"item11", number:11, name:"Насос",                                category:"Насосы",                img:"", quantity:3, location:0,  note:"" },
+    { id:"item12", number:12, name:"АГП-1",                                category:"Прочее оборудование",   img:"", quantity:1, location:0,  note:"" },
+    { id:"item13", number:13, name:"Тепловизор",                           category:"Прочее оборудование",   img:"", quantity:1, location:0,  note:"" },
+    { id:"item14", number:14, name:"Тестер поиска протечки",               category:"Прочее оборудование",   img:"", quantity:1, location:0,  note:"" },
+    { id:"item15", number:15, name:"Осушитель воздуха (чёрный, Китай)",    category:"Осушители воздуха",     img:"", quantity:1, location:0,  note:"" },
+    { id:"item16", number:16, name:"Водосгон",                             category:"Прочее оборудование",   img:"", quantity:1, location:0,  note:"" },
+    { id:"item17", number:17, name:"Вентилятор маленький",                 category:"Вентиляторы",           img:"", quantity:1, location:0,  note:"" },
+    { id:"item18", number:18, name:"Шаблон 1",                             category:"Шаблон / Резерв",       img:"", quantity:1, location:0,  note:"" },
+    { id:"item19", number:19, name:"Шаблон 2",                             category:"Шаблон / Резерв",       img:"", quantity:1, location:0,  note:"" },
+    { id:"item20", number:20, name:"Шаблон 3",                             category:"Шаблон / Резерв",       img:"", quantity:1, location:0,  note:"" },
+    { id:"item21", number:21, name:"Шаблон 4",                             category:"Шаблон / Резерв",       img:"", quantity:1, location:0,  note:"" },
+    { id:"item22", number:22, name:"Шаблон 5",                             category:"Шаблон / Резерв",       img:"", quantity:1, location:0,  note:"" },
+    { id:"item23", number:23, name:"Шаблон 6",                             category:"Шаблон / Резерв",       img:"", quantity:1, location:0,  note:"" },
+    { id:"item24", number:24, name:"Шаблон 7",                             category:"Шаблон / Резерв",       img:"", quantity:1, location:0,  note:"" },
+    { id:"item25", number:25, name:"Шаблон 8",                             category:"Шаблон / Резерв",       img:"", quantity:1, location:0,  note:"" }
   ];
   // ВАЖНО: для позиции item01 (Осушитель воздуха Jax) ссылка на фото
   // из ВКонтакте не была передана и поэтому оставлена пустой ("").
@@ -781,8 +783,9 @@
   const connDot = document.getElementById("connDot");
   const connText = document.getElementById("connText");
   const statTotal = document.getElementById("statTotal");
-  const statAvailable = document.getElementById("statAvailable");
-  const statIssued = document.getElementById("statIssued");
+  const statGarage = document.getElementById("statGarage");
+  const statOffice = document.getElementById("statOffice");
+  const statObject = document.getElementById("statObject");
 
   /* =========================================================
      ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
@@ -862,12 +865,17 @@
     const mediaHtml = item.img
       ? '<img src="' + escapeHtml(item.img) + '" alt="' + escapeHtml(item.name) + '" loading="lazy">'
       : '<div class="card-media--empty">' + WRENCH_ICON + '</div>';
-    const checked = item.status ? "checked" : "";
-    const statusClass = item.status ? "on" : "off";
-    const statusText = item.status ? "В наличии" : "Выдано";
     const qtyBadge = item.quantity && item.quantity > 1
       ? '<span class="qty-badge">× ' + escapeHtml(item.quantity) + '</span>'
       : "";
+
+    // Местонахождение: 0 = Гараж, 1 = Офис, 2 = Объект. Для записей,
+    // созданных до появления этого поля, по умолчанию считаем "Гараж".
+    const locIndex = (typeof item.location === "number" && item.location >= 0 && item.location <= 2) ? item.location : 0;
+    const locOptionsHtml = LOCATIONS.map(function(label, idx){
+      const activeClass = idx === locIndex ? " active" : "";
+      return '<button type="button" class="loc-opt' + activeClass + '" data-loc="' + idx + '">' + escapeHtml(label) + '</button>';
+    }).join("");
 
     return (
       '<div class="card" data-id="' + escapeHtml(item.id) + '">' +
@@ -881,12 +889,10 @@
           '<h3 class="card-title">' + escapeHtml(item.name) + qtyBadge + '</h3>' +
           '<textarea class="note-input" rows="2" placeholder="Комментарий / место хранения…" readonly>' + escapeHtml(item.note) + '</textarea>' +
           '<div class="card-footer">' +
-            '<span class="status-pill ' + statusClass + '">' + statusText + '</span>' +
-            '<label class="toggle" aria-label="Переключить статус: ' + escapeHtml(item.name) + '">' +
-              '<input type="checkbox" class="toggle-input" ' + checked + '>' +
-              '<span class="toggle-track"></span>' +
-              '<span class="toggle-thumb"></span>' +
-            '</label>' +
+            '<div class="loc-toggle" data-loc="' + locIndex + '">' +
+              '<span class="loc-thumb"></span>' +
+              locOptionsHtml +
+            '</div>' +
           '</div>' +
         '</div>' +
       '</div>'
@@ -909,10 +915,15 @@
   function updateStats(){
     const all = Object.keys(equipmentData).map(function(id){ return equipmentData[id]; });
     const total = all.length;
-    const available = all.filter(function(it){ return !!it.status; }).length;
+    const counts = [0, 0, 0];
+    all.forEach(function(it){
+      const idx = (typeof it.location === "number" && it.location >= 0 && it.location <= 2) ? it.location : 0;
+      counts[idx]++;
+    });
     statTotal.textContent = total || "0";
-    statAvailable.textContent = available || "0";
-    statIssued.textContent = (total - available) || "0";
+    statGarage.textContent = counts[0] || "0";
+    statOffice.textContent = counts[1] || "0";
+    statObject.textContent = counts[2] || "0";
   }
 
   function updateAuthUI(){
@@ -998,21 +1009,20 @@
      ВЗАИМОДЕЙСТВИЕ С КАРТОЧКАМИ (делегирование событий)
   ========================================================== */
   gridEl.addEventListener("click", function(e){
-    const toggleInput = e.target.closest(".toggle-input");
-    if (toggleInput && !isAuthorized){
-      e.preventDefault();
-      showToast("Сначала войдите по ПИН-коду, чтобы изменить статус", "warn");
-    }
-  });
+    const locBtn = e.target.closest(".loc-opt");
+    if (!locBtn) return;
 
-  gridEl.addEventListener("change", function(e){
-    if (!e.target.classList.contains("toggle-input")) return;
-    if (!isAuthorized) return;
+    if (!isAuthorized){
+      showToast("Сначала войдите по ПИН-коду, чтобы изменить местонахождение", "warn");
+      return;
+    }
+
     const card = e.target.closest(".card");
     const id = card.getAttribute("data-id");
-    const newStatus = e.target.checked;
-    equipmentRef.child(id).update({ status: newStatus, updatedAt: Date.now() }).then(function(){
-      showToast(newStatus ? "Отмечено: в наличии" : "Отмечено: выдано", "success");
+    const newLoc = parseInt(locBtn.getAttribute("data-loc"), 10);
+
+    equipmentRef.child(id).update({ location: newLoc, updatedAt: Date.now() }).then(function(){
+      showToast("Местонахождение обновлено: " + LOCATIONS[newLoc], "success");
     }).catch(function(err){
       console.error(err);
       showToast("Не удалось сохранить изменение в базе данных", "error");
