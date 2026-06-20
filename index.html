@@ -34,11 +34,39 @@
     --danger-bg:rgba(239,100,97,0.12);
     --steel:#7fa8c9;
     --teal:#5fc9c0;
+    --loc-garage:#7fa8c9;
+    --loc-office:#f2a93b;
+    --loc-object:#5fc9c0;
+    --header-bg:rgba(20,23,28,0.86);
     --radius:14px;
     --shadow:0 8px 24px rgba(0,0,0,0.35);
     --font-display:'Oswald',sans-serif;
     --font-body:'Inter',sans-serif;
     --font-mono:'JetBrains Mono',monospace;
+  }
+
+  /* ---------- Светлая тема ---------- */
+  body.light-theme{
+    --bg:#f3f4f7;
+    --bg-soft:#ffffff;
+    --surface:#ffffff;
+    --surface-2:#f1f3f6;
+    --border:#d7dbe3;
+    --border-soft:#e6e9ee;
+    --text:#1a1d23;
+    --text-dim:#4b5563;
+    --text-faint:#8a93a3;
+    --accent:#d98c12;
+    --accent-strong:#b5720b;
+    --accent-dim:#fdecc8;
+    --success:#22945f;
+    --success-bg:rgba(34,148,95,0.10);
+    --danger:#d6483a;
+    --danger-bg:rgba(214,72,58,0.10);
+    --steel:#5b86ab;
+    --teal:#2f9e92;
+    --header-bg:rgba(255,255,255,0.86);
+    --shadow:0 6px 18px rgba(20,23,28,0.08);
   }
 
   *{box-sizing:border-box;}
@@ -52,6 +80,7 @@
     font-family:var(--font-body);
     min-height:100vh;
     -webkit-font-smoothing:antialiased;
+    transition:background-color .25s ease, color .25s ease;
   }
 
   ::selection{background:var(--accent);color:#1a1306;}
@@ -85,7 +114,7 @@
     position:sticky;
     top:0;
     z-index:50;
-    background:rgba(20,23,28,0.86);
+    background:var(--header-bg);
     backdrop-filter:blur(10px) saturate(140%);
     -webkit-backdrop-filter:blur(10px) saturate(140%);
     border-bottom:1px solid var(--border-soft);
@@ -210,6 +239,22 @@
     color:var(--accent-strong);
   }
 
+  .theme-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:40px;
+    height:40px;
+    flex-shrink:0;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    cursor:pointer;
+    transition:all .2s ease;
+  }
+  .theme-btn:hover{border-color:var(--text-faint);}
+  .theme-btn svg{width:18px;height:18px;color:var(--text-dim);}
+
   /* ---------- Статистика ---------- */
   .stats-row{
     max-width:1280px;
@@ -273,23 +318,23 @@
   .card:hover{border-color:var(--border);transform:translateY(-2px);}
 
   .card-media{
-  position:relative;
-  width:100%;
-  aspect-ratio:16/10;
-  overflow:hidden;
-  background:var(--bg-soft);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-bottom:1px dashed var(--border);
-}
-.card-media img{
-  width:100%;
-  height:100%;
-  object-fit:contain;
-  padding:14px;
-  display:block;
-}
+    position:relative;
+    width:100%;
+    aspect-ratio:16/10;
+    overflow:hidden;
+    background:var(--bg-soft);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-bottom:1px dashed var(--border);
+  }
+  .card-media img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    padding:14px;
+    display:block;
+  }
   .card-media--empty svg{
     width:34px;height:34px;
     color:var(--text-faint);
@@ -408,12 +453,12 @@
     width:calc((100% - 6px) / 3);
     height:calc(100% - 6px);
     border-radius:7px;
-    background:var(--steel);
+    background:var(--loc-garage);
     transition:transform .25s cubic-bezier(.4,0,.2,1), background .25s ease;
     z-index:1;
   }
-  .loc-toggle[data-loc="1"] .loc-thumb{ transform:translateX(100%); background:var(--accent); }
-  .loc-toggle[data-loc="2"] .loc-thumb{ transform:translateX(200%); background:var(--teal); }
+  .loc-toggle[data-loc="1"] .loc-thumb{ transform:translateX(100%); background:var(--loc-office); }
+  .loc-toggle[data-loc="2"] .loc-thumb{ transform:translateX(200%); background:var(--loc-object); }
 
   .loc-opt{
     position:relative;
@@ -634,6 +679,10 @@
       <input type="text" id="searchInput" placeholder="Поиск по названию или категории…" autocomplete="off">
     </div>
 
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Переключить на светлую тему">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    </button>
+
     <button class="auth-btn" id="authBtn" type="button" aria-label="Авторизация по ПИН-коду">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
       <span>Войти по ПИН-коду</span>
@@ -773,6 +822,7 @@
   const gridEl = document.getElementById("equipmentGrid");
   const searchInput = document.getElementById("searchInput");
   const authBtn = document.getElementById("authBtn");
+  const themeBtn = document.getElementById("themeBtn");
   const pinOverlay = document.getElementById("pinOverlay");
   const pinPanel = document.getElementById("pinPanel");
   const pinForm = document.getElementById("pinForm");
@@ -1040,6 +1090,25 @@
       showToast("Не удалось сохранить комментарий", "error");
     });
   });
+
+  /* =========================================================
+     ПЕРЕКЛЮЧЕНИЕ ТЕМЫ
+  ========================================================== */
+  const SUN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+  const MOON_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+
+  function updateThemeUI(){
+    const isLight = document.body.classList.contains("light-theme");
+    themeBtn.innerHTML = isLight ? MOON_ICON : SUN_ICON;
+    themeBtn.setAttribute("aria-label", isLight ? "Переключить на тёмную тему" : "Переключить на светлую тему");
+  }
+
+  themeBtn.addEventListener("click", function(){
+    document.body.classList.toggle("light-theme");
+    updateThemeUI();
+  });
+
+  updateThemeUI();
 
   /* =========================================================
      ЗАПУСК
