@@ -284,11 +284,13 @@
     border-bottom:1px dashed var(--border);
   }
   .card-media img{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    display:block;
-  }
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  padding:10px;
+  background:var(--bg-soft);
+  display:block;
+}
   .card-media--empty svg{
     width:34px;height:34px;
     color:var(--text-faint);
